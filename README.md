@@ -2,32 +2,59 @@
 
 ## Basic CRUD
 
-### Import dataset
-`put :koop/:source_type/:host/:uuid`
+### Import/Update dataset
+`put :koop/:source_type/:host/:identifier`
+
+### Delete dataset
+`delete :koop/:source_type/:host/:identifier`
 
 ArcGIS example
 
 `put :koop/ArcGIS/production/1ef_2`
 
 ### Get info
-`get :koop/:source_type/:host/:uuid`
+`get :koop/:source_type/:host/:identifier`
 
-## Source Type
-A source exposes 3 functions
-1. `fetchMetadata`
+## Source
+A source exposes 2 functions
+### `Source.fetchMetadata`
 
 ```javascript
-function fetchMetadata (options)
-  Promise.resolve(
-    {
-      "name": name,
-      "updated": timestamp,
-      "data": [URI...URI] // pointers to raw data
+async function fetchMetadata (options)
+      return {
+      name: String,
+      updated: Number,
+      retrieved: Number,
+      data: Array, // pointers to raw data
+      fields: Array // Map("string", "string")
     }
   )
 
 ```
-2. `toGeoJSON`
+ArcGIS example
+```javascript
+import 'portal'
+import 'featureService'
+async function fetchMetadata (host, identifier) {
+  try {
+    const itemId = identifier.split('_')[0]
+    const layer = identifier.split('_')[1] || 0
+    const item = await portal.getItem(options)
+    const service = new FeatureService(item.url, {layer: layer})
+    const pages = await service.getPages()
+    return {
+      name: service.name,
+      updated: service.updated,
+      retrieved: Date.now(),
+      data: pages,
+      fields: service.fields
+    }
+  } catch (e) {
+    throw new Error('Request for resource metadata failed')  
+  }
+}
+```
+#### `Source.toGeoJSON`
 Event Emitter
 Source Data -> GeoJSON features || Errors
 
@@ -35,8 +62,8 @@ Source Data -> GeoJSON features || Errors
 function toGeoJSON (options) {
  const output = _.pipeline(stream => {
   return stream
-  .pipe(transformation) // impliment source specific logic
-  .on('error', e => output.emit(e)
+  .pipe(transformation) // implement source specific logic
+  .on('error', e => output.emit('error', e))
  })
  return output
 }
@@ -47,7 +74,7 @@ The `global` `source_type` is reserved for actions that map across all resources
 ## Plugins
 *A plugin exposes a set of functions that act on a resource*
 
-Example: `get :koop/:source_type/:host/:uuid/:plugin/:action?:query`
+Example: `get :koop/:source_type/:host/:identifier/:plugin/:action?:query`
 
 Koop-Exporter
 * Download file
@@ -65,4 +92,4 @@ Koop-Geoservices
 Koop-Queue
 * Manage a job queue
 * Add a job onto the queue
-`put :koop/:source_type/:host/:uuid/:queue/:job_type`
+`put :koop/:source_type/:host/:identifier/:queue/:job_type`

@@ -16,11 +16,11 @@ ArcGIS example
 `get :koop/:source_type/:host/:identifier`
 
 ## Source
-A source exposes 2 functions
+*A source exposes two functions `fetchMetadata` and `toGeoJSON`*
 ### `Source.fetchMetadata`
-
+Returns a promise that resolves with metadata about the resource, including a set of URLs pointing to all the raw data
 ```javascript
-async function fetchMetadata (options)
+async function fetchMetadata (options) {
       return {
       name: String,
       updated: Number,
@@ -28,8 +28,7 @@ async function fetchMetadata (options)
       data: Array, // pointers to raw data
       fields: Array // Map("string", "string")
     }
-  )
-
+}
 ```
 ArcGIS example
 ```javascript
@@ -55,9 +54,7 @@ async function fetchMetadata (host, identifier) {
 }
 ```
 #### `Source.toGeoJSON`
-Event Emitter
-Source Data -> GeoJSON features || Errors
-
+Transform stream that takes in raw input from one of the data urls and emits either GeoJSON features or errors
 ```javascript
 function toGeoJSON (options) {
  const output = _.pipeline(stream => {
@@ -71,25 +68,49 @@ function toGeoJSON (options) {
 ## Global
 The `global` `source_type` is reserved for actions that map across all resources
 
+## Cache
+Functions exposed
+
+### `Cache.createTable`
+
+### `Cache.stageTable`
+Creates table in a partitioned namespace as a holding point while data is being gathered
+
+### `Cache.promoteTable`
+* Promotes table from staging into
+* e.g.: `BEGIN;DROP TABLE IF EXISTS ${table}; ALTER TABLE ${staging_table} RENAME TO ${table};COMMIT`
+
+### `Cache.insert`
+
+### `Cache.createExportStream`
+
+### `Cache.remove`
+
+### `Cache.aggregate`
+
+### `Cache.select`
+
+### `Cache.count`
+
 ## Plugins
 *A plugin exposes a set of functions that act on a resource*
 
-Example: `get :koop/:source_type/:host/:identifier/:plugin/:action?:query`
+### `get :koop/:source_type/:host/:identifier/:plugin/:action?:query`
 
 Koop-Exporter
 * Download file
-  * `get :koop/:source_type/:host/export.format?:api:query_params`
+  * `get :koop/:source_type/:host/:identifier/export.format?:query`
 
 Koop-Search
 * Search across all resources
-`get :koop/global/search?:query`
+  * `get :koop/global/search?:query`
 
 Koop-Geoservices
 * Make a Feature Service style request
 * Depends on `Cache` & `Index`
-`get :koop/:source_type/:host/FeatureService/0/query`
+  * `get :koop/:source_type/:host/:identifier/FeatureService/0/query?:query`
 
 Koop-Queue
 * Manage a job queue
 * Add a job onto the queue
-`put :koop/:source_type/:host/:identifier/:queue/:job_type`
+  * `put :koop/:source_type/:host/:identifier/:queue/:job_type`
